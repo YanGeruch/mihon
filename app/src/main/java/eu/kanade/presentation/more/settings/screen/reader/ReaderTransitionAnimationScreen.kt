@@ -164,7 +164,7 @@ class ReaderTransitionAnimationScreen : Screen() {
         }
         val previewDuration = if (option == ReaderTransitionAnimation.DEFAULT) DEFAULT_PREVIEW_DURATION else durationValue
 
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(horizontal = CONTENT_HORIZONTAL_PADDING, vertical = 12.dp)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
@@ -216,7 +216,11 @@ class ReaderTransitionAnimationScreen : Screen() {
                             ) {
                                 PageTransitionPreview(Modifier, longStrip, previewCurve, previewDuration)
                             }
-                            DurationSlider(Modifier.fillMaxWidth().padding(top = 12.dp), durationPref)
+                            // Inset both ends so the whole slider thumb clears the system back-gesture zone.
+                            DurationSlider(
+                                Modifier.fillMaxWidth().padding(top = 12.dp, start = SLIDER_EDGE_INSET, end = SLIDER_EDGE_INSET),
+                                durationPref,
+                            )
                         }
                     }
                 }
@@ -336,7 +340,7 @@ class ReaderTransitionAnimationScreen : Screen() {
                             verticalAlignment = Alignment.Top,
                         ) {
                             BezierCurveEditor(
-                                Modifier.weight(1f).padding(start = GRID_LEFT_MARGIN).aspectRatio(1f),
+                                Modifier.weight(1f).padding(start = EDGE_GESTURE_INSET).aspectRatio(1f),
                                 x1, y1, x2, y2, onChange,
                             )
                             CurveFieldsColumn(
@@ -352,8 +356,14 @@ class ReaderTransitionAnimationScreen : Screen() {
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            PageTransitionPreview(Modifier, longStrip, curve, duration)
-                            DurationSliderBare(Modifier.weight(1f), durationPref)
+                            // Align the preview's left edge with the grid's *visible* border above (the grid
+                            // insets its drawn container by GRID_PADDING for handle room), and keep the slider
+                            // thumb clear of the back-gesture edge on the right.
+                            PageTransitionPreview(
+                                Modifier.padding(start = EDGE_GESTURE_INSET + GRID_PADDING),
+                                longStrip, curve, duration,
+                            )
+                            DurationSliderBare(Modifier.weight(1f).padding(end = SLIDER_EDGE_INSET), durationPref)
                         }
                     }
                 }
@@ -720,10 +730,13 @@ class ReaderTransitionAnimationScreen : Screen() {
     @Composable
     private fun PagedPreview(modifier: Modifier, curve: FloatArray, durationMs: Int) {
         val anim = rememberCurveAnimatable(curve, durationMs)
-        val body = MaterialTheme.colorScheme.surfaceContainerHighest
+        // Body uses the selected-option background (segmented button's active container) so the device
+        // reads as tinted rather than plain, and stays distinct from the page on themes where the two
+        // neutrals coincide (e.g. Lavender). Buttons/speaker/home use primary for a clear accent on it.
+        val body = MaterialTheme.colorScheme.secondaryContainer
         val bezel = MaterialTheme.colorScheme.onSurfaceVariant
         val outline = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        val detail = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+        val detail = MaterialTheme.colorScheme.primary
         val gutter = MaterialTheme.colorScheme.surfaceVariant
         val page = MaterialTheme.colorScheme.surface
         val panel = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
@@ -744,10 +757,11 @@ class ReaderTransitionAnimationScreen : Screen() {
     @Composable
     private fun LongStripPreview(modifier: Modifier, curve: FloatArray, durationMs: Int) {
         val anim = rememberCurveAnimatable(curve, durationMs)
-        val body = MaterialTheme.colorScheme.surfaceContainerHighest
+        // See PagedPreview: tinted body (selected-option background) + primary details for contrast.
+        val body = MaterialTheme.colorScheme.secondaryContainer
         val bezel = MaterialTheme.colorScheme.onSurfaceVariant
         val outline = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        val detail = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+        val detail = MaterialTheme.colorScheme.primary
         val page = MaterialTheme.colorScheme.surface
         val ink = MaterialTheme.colorScheme.onSurfaceVariant
         val fill = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
@@ -1050,13 +1064,32 @@ class ReaderTransitionAnimationScreen : Screen() {
         private const val SHOW_DEBUG_SQUARE_PREVIEW = false
 
         // Inset reserved inside the Bézier grid so edge handles / curve glow aren't clipped.
-        private val GRID_PADDING = 12.dp
+        internal val GRID_PADDING = 12.dp
+
+        // Horizontal padding of each ViewerSection — the base clearance every child already has from the
+        // screen edge before its own inset is added.
+        internal val CONTENT_HORIZONTAL_PADDING = 16.dp
+
+        // Approx. half the Material3 slider thumb; the part of the thumb that reaches past its track end
+        // toward the screen edge and must still clear the gesture zone.
+        internal val SLIDER_THUMB_RADIUS = 10.dp
+
+        // Minimum clearance a draggable element must keep from the screen edge to stay out of the system
+        // back-gesture zone. Enforced by ReaderTransitionAnimationLayoutTest.
+        internal val MIN_EDGE_CLEARANCE = 16.dp
 
         // Custom-editor layout sizing.
         private val WIDE_LAYOUT_MIN_WIDTH = 560.dp // landscape phones / tablets → 3-column layout
         private const val TABLET_MIN_SW = 600 // Android's standard tablet smallest-width breakpoint
         private val NUMERIC_COL_WIDTH = 80.dp // fixed-width X/Y/duration column (same in both layouts)
-        private val GRID_LEFT_MARGIN = 12.dp // pushes an x=0 handle clear of the back-gesture edge
+        // Inset applied to the grid (and matched by the preview) in the narrow layout so an x=0 handle
+        // clears the system back-gesture edge zone.
+        internal val EDGE_GESTURE_INSET = 12.dp
+
+        // Sliders need a larger inset than the grid: the thumb has width, so clearing its *center* isn't
+        // enough — its outer edge (~half the ~20dp thumb) must also clear the gesture zone. On top of the
+        // section's own padding this keeps the whole thumb out of the edge.
+        internal val SLIDER_EDGE_INSET = 24.dp
         private val GRID_NUM_GAP = 8.dp
         private val ANIM_COL_WIDTH = 184.dp // preview + slider column in the wide layout
         private val PRESET_SLIDER_WIDTH = 280.dp // duration slider beside the preview (wide presets)

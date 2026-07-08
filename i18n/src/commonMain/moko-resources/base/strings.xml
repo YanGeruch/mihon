@@ -400,7 +400,7 @@
     <string name="transition_curve_ease_out">Out</string>
     <string name="transition_curve_ease_in_out">In-out</string>
     <string name="transition_curve_ease_in">In</string>
-    <string name="pref_reader_transition_curve_help">Drag the dots, tap a preset, or type values to set how the page moves — then watch it play below. A dot higher up speeds that part up; lower slows it. The slider sets the total time.</string>
+    <string name="pref_reader_transition_curve_help">Drag the dots, tap a preset, or type values to shape how the page slides — then watch it play below. Drag a dot up to make that part of the slide faster, or down to make it slower. The slider sets how long the whole slide takes.</string>
     <string name="pref_flash_page">Flash on page change</string>
     <string name="pref_flash_page_summ">Reduces ghosting on e-ink displays</string>
     <string name="pref_flash_duration">Flash duration</string>
