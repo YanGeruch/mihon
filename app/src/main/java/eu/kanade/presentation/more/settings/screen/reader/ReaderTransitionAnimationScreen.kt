@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -382,10 +383,24 @@ class ReaderTransitionAnimationScreen : Screen() {
         val cy2 by rememberUpdatedState(y2)
         val updated by rememberUpdatedState(onChange)
 
-        val startColor = MaterialTheme.colorScheme.primary
-        val endColor = MaterialTheme.colorScheme.tertiary
         val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f)
         val containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        val handleFillColor = MaterialTheme.colorScheme.surface
+
+        // The effective canvas the curve and handles sit on (grid container over the screen surface).
+        val canvasColor = containerColor.compositeOver(MaterialTheme.colorScheme.surface)
+        // Start is always primary. For the far end prefer tertiary — it's the genuinely distinct second
+        // accent on most themes, giving a two-tone curve — but fall back to secondary/primary when it
+        // lacks contrast against the canvas (e.g. Lavender/Yin & Yang, whose tertiary matches the bg).
+        val startColor = MaterialTheme.colorScheme.primary
+        val endColor = ReaderTransitionAnimations.pickAccentWithContrast(
+            candidates = listOf(
+                MaterialTheme.colorScheme.tertiary,
+                MaterialTheme.colorScheme.secondary,
+                MaterialTheme.colorScheme.primary,
+            ),
+            canvas = canvasColor,
+        )
 
         // The visible grid is inset by GRID_PADDING so handles and the curve glow near an edge
         // overflow into transparent padding instead of being clipped at the component border.
@@ -446,10 +461,15 @@ class ReaderTransitionAnimationScreen : Screen() {
             drawLine(endColor, end, c2, 2.dp.toPx(), cap = StrokeCap.Round)
 
             val radius = 9.dp.toPx()
-            drawCircle(containerColor, radius = radius, center = c1)
+            val dotRadius = 3.5.dp.toPx()
+            // Opaque fill + accent ring, plus a filled center dot so the two handles read as distinct
+            // targets even on themes where start and end resolve to the same color.
+            drawCircle(handleFillColor, radius = radius, center = c1)
             drawCircle(startColor, radius = radius, center = c1, style = Stroke(3.dp.toPx()))
-            drawCircle(containerColor, radius = radius, center = c2)
+            drawCircle(startColor, radius = dotRadius, center = c1)
+            drawCircle(handleFillColor, radius = radius, center = c2)
             drawCircle(endColor, radius = radius, center = c2, style = Stroke(3.dp.toPx()))
+            drawCircle(endColor, radius = dotRadius, center = c2)
         }
     }
 

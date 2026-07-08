@@ -2,7 +2,11 @@ package eu.kanade.tachiyomi.ui.reader.viewer
 
 import android.view.animation.Interpolator
 import android.view.animation.PathInterpolator
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences.ReaderTransitionAnimation
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Resolves a [ReaderTransitionAnimation] into the concrete [Interpolator] and duration each viewer
@@ -48,6 +52,29 @@ object ReaderTransitionAnimations {
 
     fun formatCurve(curve: FloatArray): String =
         curve.joinToString(",") { (Math.round(it * 1000f) / 1000f).toString() }
+
+    /**
+     * Minimum WCAG luminance contrast ratio an accent must clear against the curve-editor canvas to be
+     * considered legible; below this it's treated as blending into the background.
+     */
+    const val MIN_ACCENT_CONTRAST = 2f
+
+    /**
+     * Picks the far-end accent for the curve editor. Tries [candidates] in order (typically tertiary,
+     * then secondary, then primary) and returns the first that clears [MIN_ACCENT_CONTRAST] against
+     * [canvas]; falls back to the last candidate when none do. This lets themes with a distinct
+     * tertiary render a two-tone curve while themes whose tertiary matches the background (e.g.
+     * Lavender, Yin & Yang) fall back to a color that still reads — with no per-theme special-casing.
+     */
+    fun pickAccentWithContrast(candidates: List<Color>, canvas: Color): Color =
+        candidates.firstOrNull { contrastRatio(it, canvas) >= MIN_ACCENT_CONTRAST } ?: candidates.last()
+
+    /** WCAG relative-luminance contrast ratio between two opaque colors, in the range 1..21. */
+    fun contrastRatio(a: Color, b: Color): Float {
+        val la = a.luminance()
+        val lb = b.luminance()
+        return (max(la, lb) + 0.05f) / (min(la, lb) + 0.05f)
+    }
 }
 
 data class ResolvedTransition(
