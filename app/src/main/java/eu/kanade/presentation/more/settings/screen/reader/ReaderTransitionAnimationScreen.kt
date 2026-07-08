@@ -184,17 +184,21 @@ class ReaderTransitionAnimationScreen : Screen() {
                 }
             }
 
-            // Preset (Default/Smooth/Gentle) preview + duration slider. Custom moves both into its
-            // editor. Responsive: stacked on phones; side-by-side (preview | slider, evenly spaced)
-            // when wide, so the slider sits to the right of the animation instead of on top of it.
-            if (option != ReaderTransitionAnimation.CUSTOM) {
-                val showSlider = option != ReaderTransitionAnimation.DEFAULT
+            // Preview + duration slider for the Smooth/Gentle presets, animated in/out with the
+            // app's standard expand+fade pattern. DEFAULT shows no preview (its transition is the
+            // viewer's native one, which the preview can't faithfully represent); CUSTOM has its own
+            // editor below. Responsive: stacked on phones; preview | slider side-by-side when wide.
+            AnimatedVisibility(
+                visible = option == ReaderTransitionAnimation.SMOOTH || option == ReaderTransitionAnimation.GENTLE,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp),
                 ) {
-                    if (showSlider && maxWidth >= WIDE_LAYOUT_MIN_WIDTH) {
+                    if (maxWidth >= WIDE_LAYOUT_MIN_WIDTH) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -211,9 +215,7 @@ class ReaderTransitionAnimationScreen : Screen() {
                             ) {
                                 PageTransitionPreview(Modifier, longStrip, previewCurve, previewDuration)
                             }
-                            if (showSlider) {
-                                DurationSlider(Modifier.fillMaxWidth().padding(top = 12.dp), durationPref)
-                            }
+                            DurationSlider(Modifier.fillMaxWidth().padding(top = 12.dp), durationPref)
                         }
                     }
                 }
